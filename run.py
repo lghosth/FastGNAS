@@ -42,7 +42,6 @@ def format_architecture_for_display(arch_spec: dict, search_strategy: str) -> st
                 layer_num = i + 1
                 lines.append(f"Layer {layer_num}:")
                 
-                # GNN type
                 encoding = layer.get('encoding', 'unknown')
                 gnn_type_map = {
                     'gcn': 'GCN', 'gat': 'GAT', 'sym-gat': 'Symmetric GAT',
@@ -53,7 +52,6 @@ def format_architecture_for_display(arch_spec: dict, search_strategy: str) -> st
                 gnn_name = gnn_type_map.get(encoding, f"Unknown ({encoding})")
                 lines.append(f"  Model Type: {gnn_name}")
                 
-                # Other parameters
                 if 'hidden_dim' in layer:
                     lines.append(f"  Hidden Dim: {layer['hidden_dim']}")
                 if 'num_heads' in layer and layer.get('num_heads', 1) > 1:
@@ -163,20 +161,17 @@ def main():
     parser.add_argument('--config', type=str, default='configs/train.yaml', help='Path to config file')
     args = parser.parse_args()
 
-    # 0. Init logger
     run_timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     log_dir = os.path.join("logs", "logings", f"run_{run_timestamp}")
     logger = GraphNASLogger(log_dir=log_dir, name="main_process")
     logger.logger.info("GraphNAS search process started...")
 
-    # 1. Load config
     config = load_config(args.config)
     nas_config = config['nas']
     train_config = config['training']
     logger.logger.info(f"Loaded config: \n{yaml.dump(config, indent=2)}")
 
-    # 2. Init Ray
-    logger.logger.info("Step 1: Initializing Ray...")
+    logger.logger.info("Initializing Ray...")
     num_gpus = int(torch.cuda.device_count())
     if num_gpus == 0:
         logger.logger.warning("No GPU detected. Using CPU for simulation.")
@@ -185,8 +180,7 @@ def main():
         ray.init(num_gpus=num_gpus, ignore_reinit_error=True)
     logger.logger.info(f"-> Ray initialized. Resources: {ray.available_resources()}")
 
-    # 3. Prepare and partition dataset
-    logger.logger.info("Step 2: Preparing and partitioning dataset...")
+    logger.logger.info("Preparing and partitioning dataset...")
     dataset_name = train_config['dataset']
     num_workers = int(ray.available_resources().get("GPU", 2))
     max_hops = nas_config['gnn_layers'] 
@@ -194,8 +188,7 @@ def main():
     partitions = partition_training_graph(dataset_name, num_workers, max_hops)
     logger.logger.info(f"-> Dataset '{dataset_name}' partitioned into {len(partitions)} parts.")
 
-    # 4. Create backend components (Workers & Dispatcher)
-    logger.logger.info("Step 3: Creating backend components (Workers & Dispatcher)...")
+    logger.logger.info("Creating backend components (Workers & Dispatcher)...")
     workers = []
     for i in range(num_workers):
         use_gpu = torch.cuda.is_available()
@@ -206,8 +199,7 @@ def main():
     
     logger.logger.info(f"-> {len(workers)} Workers created.")
 
-    # 5. Init RL controller
-    logger.logger.info("Step 4: Initializing RL controller...")
+    logger.logger.info("Initializing RL controller...")
     controller = ControllerManager(
         search_strategy=nas_config['search_strategy'],
         num_layers=nas_config['gnn_layers'],
@@ -222,13 +214,12 @@ def main():
     )
     logger.logger.info("-> Controller initialized.")
 
-    # 6. Init balancing components (if enabled)
     load_predictor = None
     balance_controller = None
     enable_balancing = nas_config.get('balancing_strategy', {}).get('enable', False)
     
     if enable_balancing:
-        logger.logger.info("Step 5a: Initializing balancing components...")
+        logger.logger.info("Initializing balancing components...")
         
         model_file_path = "mload_checkpoint.pth"
         if os.path.exists(model_file_path):
@@ -253,8 +244,7 @@ def main():
         )
         logger.logger.info("Balance controller initialized.")
 
-    # 7. Main search loop
-    logger.logger.info(f"Step 5: Starting {nas_config['num_search_rounds']} rounds of architecture search...")
+    logger.logger.info(f"Starting {nas_config['num_search_rounds']} rounds of architecture search...")
     
     all_candidate_models = {}
     model_counter = 0
@@ -262,7 +252,6 @@ def main():
     for round_num in tqdm(range(1, nas_config['num_search_rounds'] + 1), desc="GraphNAS Search"):
         logger.logger.info(f"--- Round {round_num}/{nas_config['num_search_rounds']} ---")
         
-        # a. Generate architectures
         if enable_balancing and balance_controller:
             logger.logger.info("Generating archs with balancing strategy...")
             dispatcher = Dispatcher.remote(
@@ -284,7 +273,6 @@ def main():
             dispatcher = Dispatcher.remote(worker_refs=workers, train_config=train_config)
             ray.get(dispatcher.submit_architectures.remote(architectures_to_eval))
         
-        # b. Assign unique IDs
         current_round_models = {}
         for arch in architectures_to_eval:
             model_counter += 1
@@ -295,10 +283,8 @@ def main():
                 'round': round_num, 'original_arch_id': arch['arch_id']
             }
         
-        # d. Run evaluation
         ray.get(dispatcher.run_training_rounds.remote(num_complete_rounds=1))
         
-        # e. Get results
         results_summary = ray.get(dispatcher.get_architectures.remote(format_type='summary'))
         eval_rewards = {}
         if isinstance(results_summary, dict) and hasattr(results_summary, 'get'):
@@ -311,27 +297,22 @@ def main():
         else:
             logger.logger.warning(f"Failed to get valid eval results: {results_summary}")
         
-        # f. Update best accuracies
         for arch_id, accuracy in eval_rewards.items():
             if arch_id in current_round_models:
                 model_id = current_round_models[arch_id]
                 all_candidate_models[model_id]['best_accuracy'] = accuracy
                 logger.logger.info(f"Model {model_id} (Round {round_num}) Acc: {accuracy:.4f}")
         
-        # g. Log metrics
         if eval_rewards:
             logger.log_metrics(eval_rewards, step=round_num, prefix='nas_rewards/')
         
-        # h. Train controller
         controller.train_step(rewards=eval_rewards)
         
-        # i. Kill dispatcher
         ray.kill(dispatcher)
 
-    logger.logger.info("Step 6: Architecture search complete!")
+    logger.logger.info("Architecture search complete!")
 
-    # 7. Select Top K for final retraining
-    logger.logger.info("Step 7: Selecting Top K candidates for retraining...")
+    logger.logger.info("Selecting Top K candidates for retraining...")
     
     sorted_models = sorted(all_candidate_models.items(), key=lambda x: x[1]['best_accuracy'], reverse=True)
     
@@ -347,9 +328,8 @@ def main():
     for i, (model_id, model_info) in enumerate(top_k_models):
         logger.logger.info(f"Candidate {i+1}: {model_id} - Initial Acc: {model_info['best_accuracy']:.4f}")
     
-    # 8. Retrain Top K
     final_retrain_epochs = nas_config.get('final_retrain_epochs', 20)
-    logger.logger.info(f"Step 8: Retraining Top {final_candidates_count} for {final_retrain_epochs} epochs...")
+    logger.logger.info(f"Retraining Top {final_candidates_count} for {final_retrain_epochs} epochs...")
     
     final_train_config = train_config.copy()
     final_train_config['epochs_per_rotation'] = 5
@@ -387,8 +367,7 @@ def main():
         
         ray.kill(final_dispatcher)
     
-    # 9. Output final results
-    logger.logger.info("Step 9: Final results...")
+    logger.logger.info("Final results...")
     final_results_header = "="*25 + " GraphNAS Final Results " + "="*25
     logger.logger.info(final_results_header)
     
@@ -426,8 +405,7 @@ def main():
     csv_path = logger.save_metrics_to_csv()
     logger.logger.info(f"All metrics saved to: {csv_path}")
 
-    # 8. Cleanup
-    logger.logger.info("Step 7: Shutting down Ray...")
+    logger.logger.info("Shutting down Ray...")
     ray.shutdown()
     logger.logger.info("-> Process finished.")
 
