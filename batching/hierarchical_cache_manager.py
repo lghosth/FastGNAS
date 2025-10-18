@@ -49,7 +49,7 @@ class HierarchicalCacheManager:
         Gets a mini-batch based on the requested batch size and number of layers.
         This is the main entry point for this class.
         """
-        # 1. Look up cache pool by batch size
+
         cache_pool = self.global_cache.get(requested_bs)
 
         # Case A: Batch size miss
@@ -61,26 +61,26 @@ class HierarchicalCacheManager:
 
     def _handle_bs_miss(self, req_bs: int, req_layers: int) -> Data:
         """Handles a cache miss for a given batch size."""
-        # 3.A.1. Check for eviction
+
         if len(self.global_cache) >= self.max_cache_pools:
             self._evict_pool()
         
-        # 3.A.2. Create a new pool
+
         new_pool = CachePool(batch_size=req_bs, max_pool_size=self.max_pool_size)
         self.global_cache[req_bs] = new_pool
         
-        # 3.A.3. Perform a full sample and store in the new pool
+
         return self._full_sample_and_cache(new_pool, req_bs, req_layers)
 
     def _handle_bs_hit(self, pool: CachePool, req_bs: int, req_layers: int) -> Data:
         """Handles a cache hit for a given batch size."""
         pool.touch() # Update timestamp
         
-        # 3.B.1. Calculate hit probability
+
         # Ensure denominator is not zero and probability does not exceed 1.0
         p_hit = min(len(pool) / self.avg_degree, 1.0) if self.avg_degree > 0 else 0.0
 
-        # 3.B.2. Make a random decision
+
         if random.random() < p_hit:
             # If hit, proceed to hierarchical matching
             return self._hierarchical_match(pool, req_layers)

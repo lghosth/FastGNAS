@@ -63,7 +63,7 @@ class TrainerWorker:
         """
         Receives a model, trains it on the local data partition, and returns results.
         """
-        # 1. Rebuild model if architecture has changed
+
         if self.model is None or str(arch_spec) != str(self.current_arch_spec):
             if not isinstance(self.data_partition.y, torch.Tensor):
                 raise TypeError("data_partition.y must be a torch.Tensor to determine output_dim")
@@ -77,13 +77,13 @@ class TrainerWorker:
             ).to(self.device)
             self.current_arch_spec = arch_spec
 
-        # 2. Load state_dict if provided (model transfer)
+
         if state_dict:
             self.model.load_state_dict(state_dict)
 
         optimizer = torch.optim.Adam(self.model.parameters(), lr=config.get('lr', 0.01))
         
-        # 3. Training loop
+
         epochs = config.get('epochs_per_rotation', 5)
         requested_bs = config.get('batch_size', 64)
         steps_per_epoch = config.get('steps_per_epoch', 1) 
@@ -112,7 +112,7 @@ class TrainerWorker:
                 else:
                     print(f"Warning: Output or label is not a tensor at epoch {epoch}, step {step+1}.")
 
-        # 4. Evaluate and return results
+
         val_acc, _ = self._evaluate(self.model)
         # Move updated model parameters to CPU for transfer
         updated_state_dict = {k: v.cpu() for k, v in self.model.state_dict().items()}

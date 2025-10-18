@@ -17,18 +17,15 @@ def evaluate_balance(architectures: List[Dict],
     if not architectures:
         return True, 0.0
 
-    # 1. Sort architectures by load in descending order
+
     sorted_archs = sorted(architectures, key=lambda x: x['load'], reverse=True)
 
-    # 2. Initialize M buckets
     buckets = [0.0] * num_workers
 
-    # 3. Greedily assign architectures to the bucket with the minimum current load
     for arch in sorted_archs:
         min_load_bucket_idx = buckets.index(min(buckets))
         buckets[min_load_bucket_idx] += arch['load']
 
-    # 4. Check if the balancing condition is met
     max_load = max(buckets)
     min_load = min(buckets)
     

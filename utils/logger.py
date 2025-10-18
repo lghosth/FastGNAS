@@ -159,29 +159,23 @@ class GraphNASLogger:
             handler.close()
             self.logger.removeHandler(handler)
 
-# ====================
-#  Independent Test Module
-# ====================
+
 if __name__ == '__main__':
     print("===== Running Test for utils/logger.py =====")
     
-    # --- Test Setup ---
     TEST_LOG_DIR = "temp_test_logs"
     if os.path.exists(TEST_LOG_DIR):
         shutil.rmtree(TEST_LOG_DIR) # Clean up old test logs
 
-    # 1. Init Logger
     print("\n[Test 1] Initializing logger...")
     logger = GraphNASLogger(log_dir=TEST_LOG_DIR, name="test_run", log_level="INFO")
     
-    # 2. Test basic logging
     print("\n[Test 2] Testing basic log messages...")
     logger.logger.debug("This is a debug message. Should not be visible with INFO level.")
     logger.logger.info("This is an info message.")
     logger.logger.warning("This is a warning message.")
     logger.logger.error("This is an error message.")
 
-    # 3. Simulate training loop and log metrics
     print("\n[Test 3] Simulating training loop and logging metrics...")
     for epoch in range(1, 4):
         # Mock train metrics
@@ -195,11 +189,9 @@ if __name__ == '__main__':
         # Log GPU memory
         logger.log_gpu_memory(step=epoch)
 
-    # 4. Save metrics to CSV
     print("\n[Test 4] Saving metrics to CSV file...")
     logger.save_metrics_to_csv()
 
-    # 5. Close Logger
     logger.close()
     
     print(f"\n===== Test Finished. Check folder '{TEST_LOG_DIR}' for logs and csv file. =====")

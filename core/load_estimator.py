@@ -6,9 +6,7 @@ import numpy as np
 import json
 from typing import List, Dict, Any, Tuple
 
-# ==============================================================================
-# 1. Config Module: Defines properties for GNN arch, graph, and hardware
-# ==============================================================================
+
 class Config:
     """
     Manages all configurable options and parameters.
@@ -35,9 +33,7 @@ class Config:
             "aggregation": {name: i for i, name in enumerate(Config.AGGREGATION_TYPES)},
         }
 
-# ==============================================================================
-# 2. Data Preprocessing Module: Converts raw data to model input tensors
-# ==============================================================================
+
 class DataPreprocessor:
     """
     Handles the conversion of raw data samples into input tensors for the neural network.
@@ -122,9 +118,7 @@ class DataPreprocessor:
     def set_state(self, state: Dict[str, Any]):
         self.normalization_params = state['normalization_params']
 
-# ==============================================================================
-# 3. Neural Network Model Module
-# ==============================================================================
+
 class MloadModel(nn.Module):
     """
     A simple neural network model for predicting GNN workload.
@@ -145,9 +139,7 @@ class MloadModel(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.network(x)
 
-# ==============================================================================
-# 4. Public Predictor Interface Class
-# ==============================================================================
+
 class MloadPredictor:
     """
     An interface class providing GNN load prediction services. 
@@ -209,9 +201,7 @@ class MloadPredictor:
         # 4. Extract the float value from the tensor and return it
         return predicted_value.item()
 
-# ==============================================================================
-# 5. Training and Utility Functions
-# ==============================================================================
+
 def train_model(model: MloadModel, X_train: torch.Tensor, y_train: torch.Tensor, epochs: int = 200, learning_rate: float = 0.001):
     print(f"\nStarting training for {epochs} epochs...")
     criterion = nn.MSELoss()

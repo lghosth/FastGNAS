@@ -203,7 +203,7 @@ class Dispatcher:
                 rotation_round = (complete_round - 1) * self.num_workers + rotation_step + 1
                 print(f"\n--- Rotation {rotation_round}/{total_rotation_rounds} (Complete Round {complete_round}, Step {rotation_step + 1}/{self.num_workers}) ---")
                 
-                # 1. Prepare and dispatch tasks
+
                 futures = []
                 for i, worker in enumerate(self.workers):
                     # Determine the model to train based on the current rotation position
@@ -220,7 +220,7 @@ class Dispatcher:
                     )
                     futures.append((arch_id, future))
                 
-                # 2. Collect results and update model states
+
                 for arch_id, future in futures:
                     val_acc, updated_state = ray.get(future)
                     self.model_states[arch_id]['state'] = updated_state
@@ -228,7 +228,7 @@ class Dispatcher:
                         self.model_states[arch_id]['best_acc'] = val_acc
                         print(f"  New best accuracy for '{arch_id}': {val_acc:.4f}")
 
-                # 3. Perform model rotation (ring-style), but not on the last step
+
                 if rotation_step < self.num_workers - 1:
                     self.model_pool.insert(0, self.model_pool.pop())
                     print(f"  - Model rotation complete. Next assignment: {self.model_pool[0]['arch_id']} -> Worker 0.")
@@ -273,7 +273,7 @@ if __name__ == '__main__':
     ]
 
     try:
-        # 1. Initialize Ray
+
         print(f"\n[Step 1] Initializing Ray with {NUM_WORKERS} Workers...")
         if torch.cuda.is_available():
             ray.init(num_gpus=NUM_WORKERS, ignore_reinit_error=True)
@@ -281,12 +281,12 @@ if __name__ == '__main__':
             ray.init(num_cpus=NUM_WORKERS, ignore_reinit_error=True)
         print(f"   -> Ray initialized successfully. Available resources: {ray.available_resources()}")
 
-        # 2. Partition the dataset
+
         print(f"\n[Step 2] Partitioning '{DATASET}' for {NUM_WORKERS} workers...")
         partitions = partition_training_graph(DATASET, NUM_WORKERS, MAX_HOPS)
         print(f"   -> Dataset partitioned into {len(partitions)} parts.")
 
-        # 3. Create TrainerWorker Actors
+
         print(f"\n[Step 3] Creating {NUM_WORKERS} TrainerWorkers...")
         workers = [
             TrainerWorker.options(num_gpus=1 if torch.cuda.is_available() else 0).remote(
@@ -297,23 +297,23 @@ if __name__ == '__main__':
         ]
         print(f"   -> {len(workers)} workers created successfully.")
 
-        # 4. Create Dispatcher Actor
+
         print("\n[Step 4] Creating Dispatcher...")
         train_config = {'epochs_per_rotation': EPOCHS_PER_ROTATION, 'lr': LEARNING_RATE}
         dispatcher = Dispatcher.remote(worker_refs=workers, train_config=train_config)
         print("   -> Dispatcher created successfully.")
 
-        # 5. Submit architectures
+
         print(f"\n[Step 5] Submitting {len(architectures_to_test)} model architectures...")
         ray.get(dispatcher.submit_architectures.remote(architectures_to_test))
         print("   -> Model architectures submitted successfully.")
 
-        # 6. Run training
+
         print(f"\n[Step 6] Starting {TRAINING_ROUNDS} training rounds...")
         ray.get(dispatcher.run_training_rounds.remote(num_complete_rounds=TRAINING_ROUNDS))
         print("   -> Training execution finished.")
 
-        # 7. Fetch and display final results
+
         print("\n[Step 7] Fetching and displaying final evaluation results...")
         final_results = ray.get(dispatcher.get_architectures.remote())
 
@@ -329,7 +329,7 @@ if __name__ == '__main__':
         traceback.print_exc()
 
     finally:
-        # 8. Shut down Ray
+
         print("\n[Step 8] Shutting down Ray...")
         ray.shutdown()
         print("   -> Ray has been shut down. Test finished.")

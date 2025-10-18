@@ -6,10 +6,7 @@ import torch.nn.functional as F
 from typing import Dict, Any, List, Optional
 from torch_geometric.nn.conv import GCNConv, SAGEConv, GATConv, ChebConv, ARMAConv, SGConv
 
-# +---------------------------------------------------------------------------------+
-# | Section 1: Core mapping functions from graphnas/micro_search_space.py           |
-# | These functions dynamically convert string names to PyG layers or activations.  |
-# +---------------------------------------------------------------------------------+
+
 
 def act_map(act_name: str):
     """Returns an activation function based on its name."""
@@ -50,10 +47,7 @@ def gnn_map(gnn_name: str, in_dim: int, out_dim: int, heads: int = 1) -> nn.Modu
         raise ValueError(f"Unsupported GNN layer: '{gnn_name}'")
 
 
-# +---------------------------------------------------------------------------------+
-# | Section 2: Dynamic GNN Model Definition                                         |
-# | This class dynamically builds a network based on the provided `arch_spec`.      |
-# +---------------------------------------------------------------------------------+
+
 
 class DynamicGNN(nn.Module):
     """
@@ -105,10 +99,7 @@ class DynamicGNN(nn.Module):
         # Final layer returns raw logits for the loss function
         return x
 
-# +---------------------------------------------------------------------------------+
-# | Section 3: Model Builder Factory (Main Entry Point)                             |
-# | This is the only part that external modules (like TrainerWorker) should call.   |
-# +---------------------------------------------------------------------------------+
+
 
 class ModelBuilder:
     """
@@ -227,9 +218,7 @@ class ModelBuilder:
         
         return {'layers': layers}
 
-# ===================================================================================
-# | Independent Test Module                                                         |
-# ===================================================================================
+
 if __name__ == '__main__':
     print("===== Running Independent Test for trainer/builder.py =====")
     
@@ -238,7 +227,7 @@ if __name__ == '__main__':
     OUTPUT_DIM = 7
     TRAIN_CONFIG = {'dropout': 0.6}
 
-    # --- Test Case 1: Build a simple 2-layer GCN ---
+
     print("\n[Test Case 1] Building a 2-layer GCN model...")
     gcn_spec = {
         'layers': [
@@ -258,7 +247,7 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"  - Test failed: {e}")
 
-    # --- Test Case 2: Build a mixed GCN and GAT model ---
+
     print("\n[Test Case 2] Building a GCN -> GAT -> SAGE model...")
     mixed_spec = {
         'layers': [

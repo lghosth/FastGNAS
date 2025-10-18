@@ -58,7 +58,7 @@ def get_dataset(name: str,
 if __name__ == '__main__':
     print("===== Running Test for data_utils.py =====")
     
-    # --- Test Case 1: Load Cora dataset ---
+
     print("\n[Test Case 1] Loading 'Cora' dataset...")
     try:
         cora_dataset, cora_data = get_dataset(name='Cora', root='dataset')
@@ -77,7 +77,7 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"Failed to load 'Cora': {e}")
 
-    # --- Test Case 2: Load PubMed dataset ---
+
     print("\n[Test Case 2] Loading 'PubMed' dataset...")
     try:
         pubmed_dataset, pubmed_data = get_dataset(name='PubMed', root='dataset')

@@ -104,19 +104,16 @@ class BalanceController:
         """
         print(f"\n=== Starting balanced architecture generation ===")
         
-        # 1. Generate the minimum number of architectures
         print(f"Step 1: Generating at least {self.min_samples} architectures...")
         architectures = self._generate_architectures_with_load(self.min_samples)
         
         current_count = len(architectures)
         print(f"  Generated {current_count} architectures.")
         
-        # 2. Return directly if no load predictor is available
         if self.load_predictor is None:
             print("  Warning: No load predictor provided. Skipping balancing evaluation.")
             return architectures
-        
-        # 3. Loop to check the balancing condition
+
         best_balance_result = None
         best_architectures = architectures.copy()
         
@@ -145,7 +142,7 @@ class BalanceController:
             architectures.extend(new_architectures)
             current_count = len(architectures)
         
-        # 4. If max samples reached, use the best result found
+
         if current_count >= self.max_samples:
             print(f"  Reached max samples ({self.max_samples}).")
             final_is_balanced, final_load_diff = evaluate_balance(architectures, self.num_workers, self.tolerance)
@@ -156,7 +153,7 @@ class BalanceController:
             else:
                 print(f"  Using current result (load diff: {final_load_diff:.4f}).")
         
-        # 5. Output final result
+
         final_is_balanced, final_load_diff = evaluate_balance(architectures, self.num_workers, self.tolerance)
         print(f"\n=== Architecture generation complete ===")
         print(f"  Final number of architectures: {len(architectures)}")
@@ -175,10 +172,9 @@ class BalanceController:
         """
         Generates architectures and predicts their load.
         """
-        # 1. Generate architectures using the controller manager
+
         raw_architectures = self.controller_manager.sample_architectures(num_samples)
         
-        # 2. Predict load for each architecture
         architectures_with_load = []
         for arch in raw_architectures:
             try:
@@ -303,14 +299,12 @@ class BalanceController:
         print(f"Device info updated: {self.device_info}")
 
 
-# ===================================================================================
-# | Test Module
-# ===================================================================================
+
 if __name__ == '__main__':
     print("===== Independent Test for BalanceController =====")
     
     try:
-        # 1. Init ControllerManager
+
         from core.controller import ControllerManager
         controller_manager = ControllerManager(
             search_strategy='layer_wise',
@@ -318,7 +312,7 @@ if __name__ == '__main__':
             learning_rate=0.001
         )
         
-        # 2. Try to load simplified predictor
+
         load_predictor = None
         if SimpleMloadPredictor:
             try:
@@ -327,7 +321,7 @@ if __name__ == '__main__':
             except Exception as e:
                 print(f"Warning: Failed to load simplified predictor: {e}")
         
-        # 3. Create BalanceController
+
         balance_controller = BalanceController(
             controller_manager=controller_manager,
             load_predictor=load_predictor,
@@ -337,11 +331,11 @@ if __name__ == '__main__':
             num_workers=2
         )
         
-        # 4. Test architecture generation
+
         print("\n--- Testing architecture generation and balancing ---")
         balanced_architectures = balance_controller.generate_balanced_architectures()
         
-        # 5. Output results
+
         print(f"\nGenerated {len(balanced_architectures)} architectures:")
         for i, arch in enumerate(balanced_architectures):
             print(f"  {i+1}. {arch['arch_id']}: Load={arch['load']:.4f}")

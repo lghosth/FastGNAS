@@ -22,7 +22,7 @@ def partition_training_graph(dataset_name: str, num_partitions: int, max_hops: i
     """
     print(f"Partitioning '{dataset_name}' for {num_partitions} workers with {max_hops}-hop context...")
     
-    # 1. Load the full global graph
+
     _, full_graph = get_dataset(name=dataset_name, root='dataset')
     
     # Ensure necessary attributes exist
@@ -39,7 +39,7 @@ def partition_training_graph(dataset_name: str, num_partitions: int, max_hops: i
     if not isinstance(full_graph.y, torch.Tensor):
         raise ValueError(f"Node labels (y) for '{dataset_name}' are not a tensor.")
     
-    # 2. Core step: Partition only the training nodes
+
     all_train_indices = full_graph.train_mask.nonzero(as_tuple=False).view(-1)
     sum_train_indices = len(all_train_indices)
     
@@ -69,7 +69,7 @@ def partition_training_graph(dataset_name: str, num_partitions: int, max_hops: i
     for i, core_nodes in enumerate(partition_core_nodes_list):
         total_core_nodes_partitioned += len(core_nodes)
         
-        # 3. Core step: Extract k-hop neighborhood for each partition's core nodes
+
         core_nodes_tensor = torch.tensor(core_nodes, dtype=torch.long)
         sub_nodes, sub_edge_index, inv, _ = k_hop_subgraph(
             node_idx=core_nodes_tensor,
@@ -79,7 +79,7 @@ def partition_training_graph(dataset_name: str, num_partitions: int, max_hops: i
             num_nodes=full_graph.num_nodes
         )
         
-        # 4. Build a new, self-contained Data object
+
         partition_data = Data(
             num_nodes=sub_nodes.size(0),
             x=full_graph.x[sub_nodes],
@@ -87,25 +87,24 @@ def partition_training_graph(dataset_name: str, num_partitions: int, max_hops: i
             y=full_graph.y[sub_nodes]
         )
         
-        # 5. Generate new masks accurately
-        # a. Create a global-to-local ID mapping for the subgraph
+
         num_nodes_in_full_graph = full_graph.num_nodes or int(full_graph.edge_index.max().item() + 1)
         mapping = torch.full((num_nodes_in_full_graph,), -1, dtype=torch.long)
         mapping[sub_nodes] = torch.arange(sub_nodes.size(0))
 
-        # b. New train_mask: only includes this partition's core nodes
+
         new_train_mask = torch.zeros(sub_nodes.size(0), dtype=torch.bool)
         
-        # c. Find local indices of core nodes using the mapping
+
         core_nodes_local_indices = mapping[core_nodes_tensor]
 
-        # d. Assert that all core nodes are in the subgraph
+
         assert (core_nodes_local_indices != -1).all(), "Logical error: A core node was not found in its own k-hop subgraph."
         
         new_train_mask[core_nodes_local_indices] = True
         partition_data.train_mask = new_train_mask
         
-        # e. New val/test_mask: include all original val/test nodes within this subgraph
+
         partition_data.val_mask = full_graph.val_mask[sub_nodes]
         partition_data.test_mask = full_graph.test_mask[sub_nodes]
 
@@ -124,9 +123,7 @@ def partition_training_graph(dataset_name: str, num_partitions: int, max_hops: i
     
     return partitions
 
-# ====================
-#  Independent Test Module
-# ====================
+
 if __name__ == '__main__':
     print("===== Running Test for data/partition.py =====")
     
@@ -134,19 +131,19 @@ if __name__ == '__main__':
     NUM_GPUS = 2
     MAX_HOPS_FOR_GNN = 2
     
-    # 1. Load original dataset info
+
     _, original_graph = get_dataset(name=DATASET, root='dataset')
     original_train_nodes = original_graph.train_mask.sum().item()
     print(f"\nOriginal '{DATASET}' graph has {original_train_nodes} training nodes.")
     
-    # 2. Call partitioning function
+
     partitions = partition_training_graph(
         dataset_name=DATASET, 
         num_partitions=NUM_GPUS, 
         max_hops=MAX_HOPS_FOR_GNN
     )
     
-    # 3. Verify correctness
+
     print("\n--- Verifying Partition Integrity ---")
     assert len(partitions) == NUM_GPUS, f"Expected {NUM_GPUS} partitions, but got {len(partitions)}"
     print("Correct number of partitions created.")

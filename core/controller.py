@@ -6,9 +6,6 @@ from torch.distributions import Categorical
 import numpy as np
 from typing import List, Dict, Any, Tuple
 
-# +---------------------------------------------------------------------------------+
-# | Module 1: GNN Architecture Search Space (Updated based on GraphNAS++ literature)|
-# +---------------------------------------------------------------------------------+
 
 class SearchSpace:
     """
@@ -20,18 +17,18 @@ class SearchSpace:
         self.strategy = strategy
 
         if self.strategy == 'layer_wise':
-            # ----- Strategy 1: Layer-wise search space -----
+
             self.encoding_ops = ['const', 'gcn', 'gat', 'sym-gat', 'cos', 'linear', 'gene-linear']
             self.aggregation_ops = ['sum', 'mean', 'max', 'mlp']
             self.activations = ['sigmoid', 'tanh', 'relu', 'none', 'softplus', 'leaky_relu', 'relu6', 'elu']
             self.num_heads = [1, 2, 4, 6, 8, 16]
             self.hidden_dims = [8, 16, 32, 64, 128, 256, 512]
             
-            # Create mappings from name/value to integer index
+
             self._create_maps(['encoding_ops', 'aggregation_ops', 'activations', 'num_heads', 'hidden_dims'])
 
         elif self.strategy == 'cell_based':
-            # ----- Strategy 2: Cell-based search space -----
+
             self.cell_operations = [
                 'identity', 'zero', 'gat_8_head', 'gat_6_head', 'gat_4_head', 
                 'gat_2_head', 'gat_1_head', 'gcn', 'chebnet', 'mean_sage', 'arma', 'sgc'
@@ -53,9 +50,7 @@ class SearchSpace:
         """Returns the number of options for a given dimension."""
         return len(getattr(self, key)) if hasattr(self, key) else 0
 
-# +---------------------------------------------------------------------------------+
-# | Module 2: LSTM-based RL Controller (Policy Network)                             |
-# +---------------------------------------------------------------------------------+
+
 
 class GNNController(nn.Module):
     """
@@ -180,9 +175,7 @@ class GNNController(nn.Module):
         else:
             raise ValueError(f"Unknown search strategy: '{self.strategy}'")
 
-# +---------------------------------------------------------------------------------+
-# | Module 3: Controller Manager                                                  |
-# +---------------------------------------------------------------------------------+
+
 class ControllerManager:
     """
     Manages all operations of the RL controller.
@@ -308,11 +301,9 @@ class ControllerManager:
         else:
             raise ValueError(f"Unknown search strategy: '{self.strategy}'")
 
-# ===================================================================================
-# | Independent Test Module                                                         |
-# ===================================================================================
+
 if __name__ == '__main__':
-    # ----- Test 1: Layer-wise Strategy -----
+
     print("===== Independent Test: 'layer_wise' Strategy =====")
     manager_layer = ControllerManager(search_strategy='layer_wise', num_layers=2)
     
@@ -331,7 +322,7 @@ if __name__ == '__main__':
 
     print("\n===== 'layer_wise' test complete. =====\n")
 
-    # ----- Test 2: Cell-based Strategy -----
+
     print("===== Independent Test: 'cell_based' Strategy =====")
     manager_cell = ControllerManager(search_strategy='cell_based', num_layers=3, num_intermediate_nodes=4)
     
