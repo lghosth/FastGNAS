@@ -1,52 +1,52 @@
-# 🚀 GraphNAS Distributed Training Platform
+# GraphNAS Distributed Training Platform
 
 A modular and scalable distributed training platform for Graph Neural Architecture Search (GraphNAS). Designed to support CUDA-accelerated multi-GPU execution, architecture-aware batch caching, and pluggable RL-based NAS controllers.
 
 ---
 
-## 📌 Key Features
+## Key Features
 
-- ✅ Synchronized multi-GPU training (supports any number of GPUs)
-- ✅ Layer-sensitive subgraph sampling for each model
-- ✅ GPU-side batch caching pool for efficient reuse
-- ✅ Model spec + state rotation mechanism to avoid memory conflicts
-- ✅ Decoupled controller/dispatcher for easy extension of RL strategies
-- ✅ Clear structure, compatible with GraphNAS & GraphNAS++ ideas
+- Synchronized multi-GPU training (supports any number of GPUs)
+- Layer-sensitive subgraph sampling for each model
+- GPU-side batch caching pool for efficient reuse
+- Model spec + state rotation mechanism to avoid memory conflicts
+- Decoupled controller/dispatcher for easy extension of RL strategies
+- Clear structure, compatible with GraphNAS & GraphNAS++ ideas
 
 ---
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 .
 ├── batching                      # Batching and data sampling modules
-│   ├── sampler.py                # ▶ GNN subgraph sampler (e.g., k-hop)
-│   └── simple_batch_manager.py   # ▶ Architecture-aware batch manager with GPU cache
+│   ├── sampler.py                # GNN subgraph sampler (e.g., k-hop)
+│   └── simple_batch_manager.py   # Architecture-aware batch manager with GPU cache
 │
 ├── configs                       # Configuration files
-│   └── train.yaml                # ▶ Training parameters (lr, epoch, gpus, etc.)
+│   └── train.yaml                # Training parameters (lr, epoch, gpus, etc.)
 │
 ├── core                          # Core control and scheduling modules
-│   ├── controller.py             # ▶ Architecture search controller
-│   └── dispatcher.py             # ▶ Distributed task dispatcher
+│   ├── controller.py             # Architecture search controller
+│   └── dispatcher.py             # Distributed task dispatcher
 │
 ├── data                          # Data loading and preprocessing tools
-│   ├── data_utils.py             # ▶ Dataset loader (Cora, Pubmed, etc.)
-│   └── partition.py              # ▶ Graph partitioning tool
+│   ├── data_utils.py             # Dataset loader (Cora, Pubmed, etc.)
+│   └── partition.py              # Graph partitioning tool
 │
 ├── dataset                       # Local dataset storage
 │
 ├── environment.yml               # Conda environment definition file
 ├── readme.md                     # Project documentation
 ├── requirements.txt              # Pip requirements list
-├── run.py                        # ▶ Main execution script
+├── run.py                        # Main execution script
 │
 ├── trainer                       # Training executor modules
-│   ├── builder.py                # ▶ Dynamic GNN model builder
-│   └── worker.py                 # ▶ GPU training worker (Ray Actor)
+│   ├── builder.py                # Dynamic GNN model builder
+│   └── worker.py                 # GPU training worker (Ray Actor)
 │
 └── utils                         # Utility modules
-    └── logger.py                 # ▶ Logging utility
+    └── logger.py                 # Logging utility
 ```
 
 ```text
@@ -84,9 +84,9 @@ A modular and scalable distributed training platform for Graph Neural Architectu
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-### 🧱 Environment Setup
+### Environment Setup
 
 Using Conda and Pip:
 
@@ -103,7 +103,7 @@ conda env create -f environment.yml
 conda activate graphnas
 ```
 
-▶️ Verify installation:
+Verify installation:
 
 ```bash
 python -c "import torch; import torch_geometric; print(f'PyTorch: {torch.__version__}'); print(f'PyG: {torch_geometric.__version__}')"
@@ -111,7 +111,7 @@ python -c "import torch; import torch_geometric; print(f'PyTorch: {torch.__versi
 
 ---
 
-## ⚙️ Dependencies
+## Dependencies
 
 | Component         | Version             |
 |-------------------|---------------------|
@@ -123,7 +123,7 @@ python -c "import torch; import torch_geometric; print(f'PyTorch: {torch.__versi
 
 ---
 
-## 🧪 Datasets
+## Datasets
 
 Supports PyG's Planetoid datasets by default:
 
@@ -136,7 +136,7 @@ This will automatically download and process datasets like {Cora, Citeseer, Pubm
 
 ---
 
-## 📔 Example Usage
+## Example Usage
 
 Run the training process with a mock environment:
 
@@ -150,6 +150,6 @@ python run.py --config configs/train.yaml
 
 ---
 
-## 📜 License
+## License
 
 Apache License 2.0
