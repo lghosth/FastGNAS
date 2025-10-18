@@ -7,26 +7,26 @@ import json
 from typing import List, Dict, Any, Tuple
 
 # ==============================================================================
-# 1. 配置模块: 定义GNN架构、图和硬件的各种属性
+# 1. Config Module: Defines properties for GNN arch, graph, and hardware
 # ==============================================================================
 class Config:
     """
-    集中管理所有可配置的选项和参数
+    Manages all configurable options and parameters.
     """
-    # GNN架构相关配置
-    L_MAX = 5  # GNN层数上限
+    # GNN Architecture Configs
+    L_MAX = 5  # Max number of GNN layers
 
-    # 类别型特征的选项
+    # Options for categorical features
     ACTIVATION_TYPES = ["relu", "sigmoid", "tanh", "none"]
-    ATTENTION_TYPES = ["gat", "gcn", "none"] # 'gcn'可以看作一种无注意力机制的特例
+    ATTENTION_TYPES = ["gat", "gcn", "none"] # 'gcn' is a special case with no attention
     AGGREGATION_TYPES = ["sum", "mean", "max", "mlp"]
 
-    # 数值型特征的名称 (用于预处理器动态计算其维度)
+    # Names of numerical features (used by preprocessor)
     ARCH_NUMERICAL_FEATURES = ["attention_heads", "hidden_units"]
     GRAPH_NUMERICAL_FEATURES = ["vertices", "edges", "avg_degree", "diameter"]
     DEVICE_NUMERICAL_FEATURES = ["gpu_cores", "core_frequency", "fp_capability"]
 
-    # 创建从类别名称到索引的映射，用于独热编码
+    # Creates maps from category names to indices for one-hot encoding
     @staticmethod
     def get_category_maps() -> Dict[str, Dict[str, int]]:
         return {
@@ -36,17 +36,17 @@ class Config:
         }
 
 # ==============================================================================
-# 2. 数据预处理模块: 将原始数据转换为模型输入张量
+# 2. Data Preprocessing Module: Converts raw data to model input tensors
 # ==============================================================================
 class DataPreprocessor:
     """
-    负责将原始数据样本转换为神经网络的输入向量(Tensor)。
-    同时处理独热编码和归一化，并能保存/加载归一化参数。
+    Handles the conversion of raw data samples into input tensors for the neural network.
+    Manages one-hot encoding, normalization, and saving/loading of normalization parameters.
     """
     def __init__(self, config: Config):
         self.config = config
         self.category_maps = config.get_category_maps()
-        self.normalization_params = {} # 用于存储数值特征的min和max
+        self.normalization_params = {} # to store min and max for numerical features
 
     def _one_hot_encode(self, value: str, category_type: str) -> List[float]:
         num_classes = len(self.category_maps[category_type])
@@ -123,11 +123,11 @@ class DataPreprocessor:
         self.normalization_params = state['normalization_params']
 
 # ==============================================================================
-# 3. 神经网络模型模块
+# 3. Neural Network Model Module
 # ==============================================================================
 class MloadModel(nn.Module):
     """
-    用于预测GNN工作负载的简单神经网络模型。
+    A simple neural network model for predicting GNN workload.
     """
     def __init__(self, input_dim: int):
         super(MloadModel, self).__init__()
@@ -146,40 +146,40 @@ class MloadModel(nn.Module):
         return self.network(x)
 
 # ==============================================================================
-# 4. 对外评估接口类 (新增)
+# 4. Public Predictor Interface Class
 # ==============================================================================
 class MloadPredictor:
     """
-    对外提供 GNN 负载评估服务的接口类。
-    该类封装了模型加载和预处理逻辑，提供简单的预测方法。
+    An interface class providing GNN load prediction services. 
+    It encapsulates model loading and preprocessing logic, offering a simple prediction method.
     """
     def __init__(self, model: MloadModel, preprocessor: DataPreprocessor):
         """
-        构造函数由 `load_from_file` 类方法在内部调用。
+        Constructor is internally called by the 'load_from_file' class method.
         """
         self._model = model
         self._preprocessor = preprocessor
-        self._model.eval() # 切换到评估模式，这对于包含 Dropout 等层的模型很重要
+        self._model.eval() # Switch to evaluation mode
 
     @classmethod
     def load_from_file(cls, filepath: str, config: Config = Config()):
         """
-        从文件加载模型和预处理器，并创建一个评估器实例。
-        这是创建 MloadPredictor 实例的推荐方式。
+        Loads the model and preprocessor from a file and creates a predictor instance.
+        This is the recommended way to create an MloadPredictor instance.
 
-        :param filepath: 模型检查点文件的路径 (.pth)
-        :param config: 一个 Config 实例
-        :return: 一个 MloadPredictor 实例，如果文件不存在则返回 None
+        :param filepath: Path to the model checkpoint file (.pth).
+        :param config: A Config instance.
+        :return: An MloadPredictor instance, or None if the file does not exist.
         """
         try:
             checkpoint = torch.load(filepath)
             
-            # 1. 恢复模型
+            # 1. Restore model
             input_dim = checkpoint['input_dim']
             model = MloadModel(input_dim)
             model.load_state_dict(checkpoint['model_state_dict'])
             
-            # 2. 恢复预处理器
+            # 2. Restore preprocessor
             preprocessor = DataPreprocessor(config)
             preprocessor.set_state(checkpoint['preprocessor_state'])
             
@@ -191,26 +191,26 @@ class MloadPredictor:
             
     def predict(self, sample: Dict[str, Any]) -> float:
         """
-        对单个 GNN 配置样本进行负载预测。
+        Predicts the load for a single GNN configuration sample.
 
-        :param sample: 包含 'architecture', 'graph', 'device' 键的字典
-        :return: 预测的运行时间（浮点数）
+        :param sample: A dictionary containing 'architecture', 'graph', and 'device' keys.
+        :return: The predicted runtime (float).
         """
-        # 1. 使用内部的预处理器转换输入数据
+        # 1. Transform input data using the internal preprocessor
         input_tensor = self._preprocessor.transform_single(sample)
         
-        # 2. 模型需要一个批次维度，所以增加一个维度
+        # 2. The model expects a batch dimension, so we add one
         input_tensor = input_tensor.unsqueeze(0) # [features] -> [1, features]
 
-        # 3. 在不计算梯度的上下文中进行预测
+        # 3. Perform prediction in a no-gradient context
         with torch.no_grad():
             predicted_value = self._model(input_tensor)
             
-        # 4. 从张量中提取浮点数值并返回
+        # 4. Extract the float value from the tensor and return it
         return predicted_value.item()
 
 # ==============================================================================
-# 5. 训练和工具函数
+# 5. Training and Utility Functions
 # ==============================================================================
 def train_model(model: MloadModel, X_train: torch.Tensor, y_train: torch.Tensor, epochs: int = 200, learning_rate: float = 0.001):
     print(f"\nStarting training for {epochs} epochs...")
@@ -239,8 +239,7 @@ def save_checkpoint(model: MloadModel, preprocessor: DataPreprocessor, filepath:
 
 
 if __name__ == "__main__":
-
-    # 模拟数据
+    # Mock Data
     p100_device_info = {
         "gpu_cores": 3584, 
         "core_frequency": 1.328, 
@@ -296,7 +295,7 @@ if __name__ == "__main__":
     ]
     labels = [15.5, 80.2, 25.0, 250.8, 120.3]
     
-    # 初始化和训练
+    # Initialization and Training
     config_instance = Config()
     preprocessor = DataPreprocessor(config_instance)
     X_train_tensor, y_train_tensor = preprocessor.fit_transform(sample_data, labels)
@@ -304,7 +303,7 @@ if __name__ == "__main__":
     model = MloadModel(input_dim=input_dimension)
     train_model(model, X_train_tensor, y_train_tensor, epochs=500)
     
-    # 保存
+    # Save
     MODEL_FILE_PATH = "mload_checkpoint.pth"
     save_checkpoint(model, preprocessor, MODEL_FILE_PATH)
     
@@ -312,13 +311,13 @@ if __name__ == "__main__":
     print("DEMONSTRATING PREDICTION INTERFACE")
     print("="*50 + "\n")
     
-    # --- 步骤6: 使用 MloadPredictor 类加载模型并创建评估器 ---
-    # 这是对外提供服务时，用户需要进行的操作。
+    # --- Load model and create predictor using MloadPredictor class ---
+    # This is what a user would do to use the service.
     predictor = MloadPredictor.load_from_file(MODEL_FILE_PATH)
     
-    # --- 步骤7: 使用评估器进行预测 ---
+    # --- Use the predictor for prediction ---
     if predictor:
-        # 创建一个全新的样本数据
+        # Create a new sample data
         new_sample = {
             "architecture": [
                 {"activation": "relu", "attention_type": "gat", "aggregation_type": "mean", "attention_heads": 4, "hidden_units": 200},
@@ -328,14 +327,14 @@ if __name__ == "__main__":
             "device": {"gpu_cores": 5120, "core_frequency": 1.8, "fp_capability": 7.5}
         }
         
-        # 调用 predict 方法，传入字典
+        # Call the predict method with the dictionary
         predicted_runtime = predictor.predict(new_sample)
         
         print(f"New Sample Configuration:\n{json.dumps(new_sample, indent=2)}")
         print(f"Predicted Runtime: {predicted_runtime:.2f} seconds")
 
-        # 还可以对另一个样本进行预测
-        another_sample = sample_data[0] # 使用一个训练集里的样本进行验证
+        # Predict on another sample
+        another_sample = sample_data[0] # Use a sample from the training set for validation
         predicted_runtime_2 = predictor.predict(another_sample)
         print(f"\nPredicting on a known sample (first training sample):")
         print(f"Predicted Runtime: {predicted_runtime_2:.2f} seconds (Actual was: {labels[0]})")
