@@ -1,16 +1,19 @@
-# GraphNAS Distributed Training Platform
+# FastGNAS: A Fast and Scalable Multi-GPU Framework for GNAS
 
-A modular and scalable distributed training platform for Graph Neural Architecture Search (GraphNAS). Designed to support CUDA-accelerated multi-GPU execution, architecture-aware batch caching, and pluggable RL-based NAS controllers.
+This is the official implementation of our paper, **"FastGNAS: Accelerating and Scaling Graph Neural Architecture Search on Multi-GPUs via Ring-Based Model Migration"**.
+
+Graph Neural Architecture Search (GNAS) automates the design of optimal Graph Neural Network (GNN) architectures but introduces significant computational overhead. Existing multi-GPU frameworks, which typically rely on data parallelism (incurring high synchronization costs) or architecture parallelism (struggling to scale with large datasets), are ill-suited for the parallel, multi-architecture workloads inherent to GNAS.
+
+`FastGNAS` is a high-performance and scalable multi-GPU framework engineered to address these challenges. By introducing a novel training paradigm and advanced scheduling strategies, FastGNAS accelerates state-of-the-art baselines by an average of **3.14×** (up to **6.18×**) across diverse benchmarks, while maintaining competitive accuracy.
 
 ---
 
-## Key Features
+##  Key Features
 
-- Synchronized multi-GPU training (supports any number of GPUs)
-- Layer-sensitive subgraph sampling for each model
-- GPU-side batch caching pool for efficient reuse
-- Model spec + state rotation mechanism to avoid memory conflicts
-- Decoupled controller/dispatcher for easy extension of RL strategies
+-   **Hybrid Training Paradigm**: Innovatively integrates **data parallelism** and **architecture parallelism** with a **ring-based model migration** mechanism, enabling highly efficient and nearly synchronization-free training.
+-   **Advanced Batch Management**: Implements **incremental batch storage** and **probabilistic batch reuse** strategies to minimize redundant batch generation and significantly reduce data loading overhead.
+-   **Fine-grained Load Balancing**: Employs **exploratory task generation** and **predictive workload estimation** to achieve precise resource allocation and dynamic task scheduling across all candidate architectures.
+-   **Modular and Extensible Design**: Features a **decoupled controller and dispatcher** architecture, allowing for the easy integration and extension of custom Reinforcement Learning (RL) search strategies.
 
 ---
 
