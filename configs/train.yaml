@@ -1,55 +1,50 @@
 training:
-  dataset: PubMed # Cora, PubMed
-  lr: 0.005  # 学习率  ## GraphNAS++为0.005
-  # epochs: 100
-  weight_decay: 0.0005 # 权重衰减，L2正则化强度 - 原来
-  dropout: 0.6  # 丢弃率
-  val_interval: 10
-  batch_size: 64   # 新增：每个mini-batch的中心节点数量，需要根据数据集训练子集大小调整
-  epochs_per_rotation: 5
-  steps_per_epoch: 1 # 准备废弃的参数，每个训练包含的训练步数
-  base_steps_per_epoch: 50       # 将原有的steps_per_epoch重命名，作为计算基准
+dataset: PubMed # Cora, PubMed
+lr: 0.005  # Learning rate
+weight_decay: 0.0005 # Weight decay (L2 regularization)
+dropout: 0.6  # Dropout rate
+val_interval: 10
+batch_size: 64   # Number of seed nodes per mini-batch
+epochs_per_rotation: 5
+steps_per_epoch: 1 # Deprecated: steps per training epoch
+base_steps_per_epoch: 50       # Base steps per epoch for calculation
 
 nas:
-  # 搜索过程参数
-  num_search_rounds: 100       # 搜索架构总数 (S) - 
-  samples_per_round: 2             # 每轮采样数 - 
-  first_round_samples: 5         # 第一轮采样数 - 新增
-  first_round_retrain_epochs: 5    # 第一轮采样模型训练次数 - 新增
-  final_candidates: 5              # 最终候选模型数 (K) - 新增
-  final_retrain_epochs: 20         # 最终候选模型重训练次数 (N) - 新增
-  
-  # 架构定义参数
-  gnn_layers: 2                    # GNN层数 (L) - 从3改为2
-  num_intermediate_nodes: 4        # 中间状态数 (Q) - 细胞搜索策略的参数，默认最好设置为4或者6
-  search_strategy: "layer_wise"    # # layer_wise, cell_based  ## 搜索策略, 层级搜索和细胞搜索
-  
-  # 控制器网络结构
-  controller_hidden_size: 100      # LSTM隐藏单元数100 - 新增-原来64
-  controller_num_layers: 1         # LSTM层数 - 新增（当前实现是单层）
-  
-  # 控制器优化器参数
-  controller_lr: 0.00035          # 控制器学习率0.00035 - 已有-原来0.001
-  controller_baseline_decay: 0.9   # 基线衰减 - 已有
-  weight_init_range: 0.1          # 权重初始化范围 - 新增
-  
-  # 采样与奖励参数
-  tanh_constant: 2.5              # Tanh常数 - 新增
-  temperature: 5.0                # 温度参数 - 新增
-  entropy_weight: 0.0001          # 熵奖励权重 - 新增
 
-  balancing_strategy:
-    enable: false                # 策略总开关 (true: 启用新策略, false: 使用原有普通调度)
-    min_samples: 3              # NGmin: 最小GNN架构数量
-    max_samples: 10             # NGmax: 最大GNN架构数量
-    tolerance: 0.1              # NGT: 负载不均衡容忍度 (例如0.1代表10%的差异)
+Search process parameters
 
+num_search_rounds: 100       # Total number of architectures to search (S)
+samples_per_round: 2             # Samples per round
+first_round_samples: 5         # Samples in the first round
+first_round_retrain_epochs: 5    # Retrain epochs for first round models
+final_candidates: 5              # Number of final candidates (K)
+final_retrain_epochs: 20         # Retrain epochs for final candidates (N)
 
+Architecture definition parameters
 
-  # num_search_rounds: 200
-  # samples_per_round: 2 #每次生成2个架构
-  # gnn_layers: 3
-  # controller_lr: 0.00035  # 控制器学习率，默认0.001；## GraphNAS++为0.00035
-  # controller_baseline_decay: 0.9
-  # search_strategy: "layer_wise" # layer_wise, cell_based  ## 搜索策略, 层级搜索和细胞搜索
-  # num_intermediate_nodes: 4 # 中间节点数量，细胞搜索策略的参数，默认最好设置为4或者6
+gnn_layers: 2                    # Number of GNN layers (L)
+num_intermediate_nodes: 4        # Intermediate nodes (Q) for cell-based search
+search_strategy: "layer_wise"    # Search strategy: "layer_wise" or "cell_based"
+
+Controller network architecture
+
+controller_hidden_size: 100      # Controller LSTM hidden size
+controller_num_layers: 1         # Controller LSTM layers (current impl. is single-layer)
+
+Controller optimizer parameters
+
+controller_lr: 0.00035           # Controller learning rate
+controller_baseline_decay: 0.9   # Baseline decay
+weight_init_range: 0.1           # Weight initialization range
+
+Sampling and reward parameters
+
+tanh_constant: 2.5               # Tanh constant for sampling
+temperature: 5.0                 # Temperature for sampling
+entropy_weight: 0.0001           # Entropy weight for reward
+
+balancing_strategy:
+enable: false                # Enable balancing strategy (true: new, false: original)
+min_samples: 3               # NGmin: Minimum number of GNN architectures
+max_samples: 10              # NGmax: Maximum number of GNN architectures
+tolerance: 0.1               # NGT: Load imbalance tolerance (e.g., 0.1 for 10% difference)
