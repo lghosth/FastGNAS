@@ -11,7 +11,6 @@ A modular and scalable distributed training platform for Graph Neural Architectu
 - GPU-side batch caching pool for efficient reuse
 - Model spec + state rotation mechanism to avoid memory conflicts
 - Decoupled controller/dispatcher for easy extension of RL strategies
-- Clear structure, compatible with GraphNAS & GraphNAS++ ideas
 
 ---
 
