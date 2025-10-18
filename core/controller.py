@@ -1,4 +1,4 @@
-# 文件: core/controller.py
+# File: core/controller.py
 
 import torch
 import torch.nn as nn
@@ -7,70 +7,59 @@ import numpy as np
 from typing import List, Dict, Any, Tuple
 
 # +---------------------------------------------------------------------------------+
-# | 模块 1: 定义GNN架构的搜索空间 (已根据GraphNAS++文献更新)                        |
+# | Module 1: GNN Architecture Search Space (Updated based on GraphNAS++ literature)|
 # +---------------------------------------------------------------------------------+
 
 class SearchSpace:
     """
-    定义GNN架构的搜索空间。
-    该版本已根据 GraphNAS++ 文献中的 Table 1, 2, 3 进行更新。
-    支持 'layer_wise' 和 'cell_based' 两种搜索策略。
+    Defines the search space for GNN architectures.
+    This version is updated based on Tables 1, 2, and 3 from the GraphNAS++ paper.
+    Supports both 'layer_wise' and 'cell_based' search strategies.
     """
     def __init__(self, strategy: str = 'layer_wise'):
         self.strategy = strategy
 
         if self.strategy == 'layer_wise':
-            # ----- 策略1: 逐层搜索空间 (对应文献 Section 4.1) -----
-            # 编码函数 (Encd), 对应文献 Table 2
+            # ----- Strategy 1: Layer-wise search space -----
             self.encoding_ops = ['const', 'gcn', 'gat', 'sym-gat', 'cos', 'linear', 'gene-linear']
-            # 聚合函数 (Aggr), 对应文献 Table 1
             self.aggregation_ops = ['sum', 'mean', 'max', 'mlp']
-            # 激活函数 (σ), 对应文献 Table 1
             self.activations = ['sigmoid', 'tanh', 'relu', 'none', 'softplus', 'leaky_relu', 'relu6', 'elu']
-            # 多头数量 (k), 对应文献 Table 1
             self.num_heads = [1, 2, 4, 6, 8, 16]
-            # 输出维度/隐藏层大小 (d), 对应文献 Table 1
             self.hidden_dims = [8, 16, 32, 64, 128, 256, 512]
             
-            # 创建从名称/值到整数索引的映射
+            # Create mappings from name/value to integer index
             self._create_maps(['encoding_ops', 'aggregation_ops', 'activations', 'num_heads', 'hidden_dims'])
 
         elif self.strategy == 'cell_based':
-            # ----- 策略2: 基于单元的搜索空间 (对应文献 Section 4.3) -----
-            # 图卷积算子, 对应文献 Table 3 中的12种算子
+            # ----- Strategy 2: Cell-based search space -----
             self.cell_operations = [
                 'identity', 'zero', 'gat_8_head', 'gat_6_head', 'gat_4_head', 
                 'gat_2_head', 'gat_1_head', 'gcn', 'chebnet', 'mean_sage', 'arma', 'sgc'
             ]
-            # 用于组合中间状态的Readout算子
-            self.readout_operations = ['add', 'concat'] # 论文中还提到 multiply, 此处简化
-            # 激活函数
+            self.readout_operations = ['add', 'concat'] # Paper also mentions 'multiply', simplified here
             self.activations = ['sigmoid', 'tanh', 'relu', 'none', 'softplus', 'leaky_relu', 'relu6', 'elu']
 
             self._create_maps(['cell_operations', 'readout_operations', 'activations'])
         else:
-            raise ValueError(f"未知的搜索策略: '{self.strategy}'。可用选项为 'layer_wise' 或 'cell_based'。")
+            raise ValueError(f"Unknown search strategy: '{self.strategy}'. Options: 'layer_wise' or 'cell_based'.")
 
     def _create_maps(self, names: List[str]):
-        """辅助函数，为给定的属性列表创建值到索引的映射。"""
+        """Helper to create value-to-index maps for given attributes."""
         for name in names:
             values = getattr(self, name)
             setattr(self, f"{name}_map", {val: i for i, val in enumerate(values)})
 
     def get_len(self, key: str) -> int:
-        """返回给定维度选项的数量。"""
-        if hasattr(self, key):
-            return len(getattr(self, key))
-        return 0
+        """Returns the number of options for a given dimension."""
+        return len(getattr(self, key)) if hasattr(self, key) else 0
 
 # +---------------------------------------------------------------------------------+
-# | 模块 2: 基于LSTM的强化学习控制器（策略网络） (已更新以支持新搜索空间)           |
+# | Module 2: LSTM-based RL Controller (Policy Network)                             |
 # +---------------------------------------------------------------------------------+
 
 class GNNController(nn.Module):
     """
-    一个基于LSTM的策略网络，它顺序地生成GNN架构的描述。
-    已更新以处理文献中定义的更复杂的 layer-wise 和 cell-based 搜索空间。
+    An LSTM-based policy network that sequentially generates GNN architecture descriptions.
     """
     def __init__(self, search_space: SearchSpace, num_layers: int = 2,
                  hidden_size: int = 100, num_intermediate_nodes: int = 4,
@@ -84,14 +73,13 @@ class GNNController(nn.Module):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
         self.num_intermediate_nodes = num_intermediate_nodes
-        # 保存采样参数
         self.tanh_constant = tanh_constant
         self.temperature = temperature
 
         self.input_embedding = nn.Embedding(1, self.hidden_size)
         self.lstm = nn.LSTMCell(self.hidden_size, self.hidden_size)
         
-        # --- 根据策略动态创建分类器 ---
+        # Dynamically create classifiers based on strategy
         if self.strategy == 'layer_wise':
             self.encoding_classifier = nn.Linear(self.hidden_size, self.search_space.get_len('encoding_ops'))
             self.aggregation_classifier = nn.Linear(self.hidden_size, self.search_space.get_len('aggregation_ops'))
@@ -110,11 +98,10 @@ class GNNController(nn.Module):
         self.h_0 = nn.Parameter(torch.zeros(1, self.hidden_size), requires_grad=False)
         self.c_0 = nn.Parameter(torch.zeros(1, self.hidden_size), requires_grad=False)
 
-        # 添加权重初始化
         self._init_weights(weight_init_range)
 
     def _init_weights(self, weight_init_range: float):
-        """初始化控制器权重为均匀分布 Uniform(-init_range, init_range)"""
+        """Initializes controller weights with a uniform distribution."""
         for name, param in self.named_parameters():
             if 'weight' in name:
                 nn.init.uniform_(param, -weight_init_range, weight_init_range)
@@ -122,24 +109,17 @@ class GNNController(nn.Module):
                 nn.init.zeros_(param)
 
     def _sample_action(self, logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """从logits中采样一个动作并返回动作、其对数概率以及策略的熵"""
+        """Samples an action from logits and returns the action, its log prob, and entropy."""
+        scaled_logits = logits
         if self.temperature > 0:
             scaled_logits = logits / self.temperature
             scaled_logits = self.tanh_constant * torch.tanh(scaled_logits)
-        else:
-            scaled_logits = logits
         
         dist = Categorical(logits=scaled_logits)
         action = dist.sample()
         log_prob = dist.log_prob(action)
         entropy = dist.entropy()
         return action, log_prob, entropy
-
-        # scaled_logits = self.tanh_constant * torch.tanh(logits / self.temperature)
-        # dist = Categorical(logits=scaled_logits)
-        # action = dist.sample()
-        # log_prob = dist.log_prob(action)
-        # return action, log_prob
 
     def _forward_layer_wise(self) -> Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]:
         inputs = self.input_embedding.weight
@@ -171,15 +151,15 @@ class GNNController(nn.Module):
             
             prev_node_logits = self.prev_node_classifiers[i](h)
             prev_node_action, prev_node_log_prob, prev_node_entropy = self._sample_action(prev_node_logits)
-            all_actions.append(prev_node_action)
-            all_log_probs.append(prev_node_log_prob)
-            all_entropies.append(prev_node_entropy)
+            all_actions.extend([prev_node_action])
+            all_log_probs.extend([prev_node_log_prob])
+            all_entropies.extend([prev_node_entropy])
 
             op_logits = self.op_classifier(h)
             op_action, op_log_prob, op_entropy = self._sample_action(op_logits)
-            all_actions.append(op_action)
-            all_log_probs.append(op_log_prob)
-            all_entropies.append(op_entropy)
+            all_actions.extend([op_action])
+            all_log_probs.extend([op_log_prob])
+            all_entropies.extend([op_entropy])
             inputs = h
         
         h, c = self.lstm(inputs, (h, c))
@@ -198,15 +178,14 @@ class GNNController(nn.Module):
         elif self.strategy == 'cell_based':
             return self._forward_cell_based()
         else:
-            raise ValueError(f"未知的搜索策略: '{self.strategy}'")
+            raise ValueError(f"Unknown search strategy: '{self.strategy}'")
 
 # +---------------------------------------------------------------------------------+
-# | 模块 3: 控制器管理器 (已更新以处理新策略和超参数)                               |
+# | Module 3: Controller Manager                                                  |
 # +---------------------------------------------------------------------------------+
 class ControllerManager:
     """
-    管理RL控制器的所有操作。
-    已更新以接受 'search_strategy' 超参数并处理两种策略的架构生成。
+    Manages all operations of the RL controller.
     """
     def __init__(self, search_strategy: str = 'layer_wise', num_layers: int = 2, 
                  num_intermediate_nodes: int = 4,
@@ -218,11 +197,11 @@ class ControllerManager:
                  entropy_weight: float = 0.0001,
                  weight_init_range: float = 0.1):
         
-        print(f"初始化 ControllerManager, 策略: '{search_strategy}'")
+        print(f"Initializing ControllerManager with strategy: '{search_strategy}'")
         self.strategy = search_strategy
         self.search_space = SearchSpace(strategy=self.strategy)
         self.entropy_weight = entropy_weight
-        print(f"熵奖励权重设置为: {self.entropy_weight}")
+        print(f"Entropy weight set to: {self.entropy_weight}")
 
         self.controller = GNNController(
             self.search_space, 
@@ -260,7 +239,6 @@ class ControllerManager:
         self.optimizer.zero_grad()
         total_loss = 0
         
-        # 检查是否有奖励，避免在空字典上调用np.mean
         if not rewards:
             self.history = []
             return
@@ -274,110 +252,100 @@ class ControllerManager:
                 reward = rewards[arch_id]
                 advantage = reward - self.baseline
                 
-                # 完善损失函数，加入熵奖励项
-                # 目标是最大化 (奖励 + 熵)，等同于最小化 -(log_prob * advantage + entropy_term)
+                # Loss includes policy gradient and entropy bonus
                 policy_loss = -sample['log_probs'].sum() * advantage
                 entropy_bonus = sample['entropies'].sum()
 
                 loss = policy_loss - self.entropy_weight * entropy_bonus
-                # loss = -sample['log_probs'].sum() * advantage
                 total_loss += loss
 
                 if reward > self.best_arch_accuracy:
                     self.best_arch_accuracy = reward
                     self.best_arch_spec = sample['spec']
-                    print(f"✨ 发现新的最佳架构: {arch_id}, 准确率: {reward:.4f}")
+                    print(f"New best architecture found: {arch_id}, Accuracy: {reward:.4f}")
 
         if self.history and total_loss != 0:
-            (total_loss / len(self.history)).backward() # 除以历史样本数，避免梯度爆炸
+            (total_loss / len(self.history)).backward() # Average loss
             self.optimizer.step()
         self.history = []
 
     def _actions_to_spec(self, actions: List[torch.Tensor]) -> Dict[str, Any]:
-        """将动作索引列表转换为人类可读的架构规范字典。"""
+        """Converts a list of action indices to a human-readable architecture spec dict."""
         if self.strategy == 'layer_wise':
             spec_layers, action_idx = [], 0
             for _ in range(self.controller.num_layers):
-                enc_idx = actions[action_idx].item()
-                agg_idx = actions[action_idx + 1].item()
-                act_idx = actions[action_idx + 2].item()
-                head_idx = actions[action_idx + 3].item()
-                dim_idx = actions[action_idx + 4].item()
-                action_idx += 5
-                
                 spec_layers.append({
-                    'encoding': self.search_space.encoding_ops[int(enc_idx)],
-                    'aggregation': self.search_space.aggregation_ops[int(agg_idx)],
-                    'activation': self.search_space.activations[int(act_idx)],
-                    'num_heads': self.search_space.num_heads[int(head_idx)],
-                    'hidden_dim': self.search_space.hidden_dims[int(dim_idx)]
+                    'encoding': self.search_space.encoding_ops[actions[action_idx].item()],
+                    'aggregation': self.search_space.aggregation_ops[actions[action_idx + 1].item()],
+                    'activation': self.search_space.activations[actions[action_idx + 2].item()],
+                    'num_heads': self.search_space.num_heads[actions[action_idx + 3].item()],
+                    'hidden_dim': self.search_space.hidden_dims[actions[action_idx + 4].item()]
                 })
+                action_idx += 5
             return {'num_layers': self.controller.num_layers, 'layers': spec_layers}
 
         elif self.strategy == 'cell_based':
             cell_connections, action_idx = [], 0
             for _ in range(self.controller.num_intermediate_nodes):
-                prev_node_idx = actions[action_idx].item()
-                op_idx = actions[action_idx + 1].item()
-                action_idx += 2
                 cell_connections.append({
-                    'from_node': prev_node_idx,
-                    'op': self.search_space.cell_operations[int(op_idx)]
+                    'from_node': actions[action_idx].item(),
+                    'op': self.search_space.cell_operations[actions[action_idx + 1].item()]
                 })
+                action_idx += 2
             
-            readout_idx = actions[action_idx].item()
-            act_idx = actions[action_idx + 1].item()
+            readout_op = self.search_space.readout_operations[actions[action_idx].item()]
+            final_act = self.search_space.activations[actions[action_idx + 1].item()]
 
             return {
                 'num_cells_to_stack': self.controller.num_layers,
                 'cell_spec': {
                     'intermediate_nodes': self.controller.num_intermediate_nodes,
                     'connections': cell_connections,
-                    'readout_op': self.search_space.readout_operations[int(readout_idx)],
-                    'final_act': self.search_space.activations[int(act_idx)]
+                    'readout_op': readout_op,
+                    'final_act': final_act
                 }
             }
         else:
-            raise ValueError(f"未知的搜索策略: '{self.strategy}'")
+            raise ValueError(f"Unknown search strategy: '{self.strategy}'")
 
 # ===================================================================================
-# | 独立测试模块: 验证两种策略的功能。                                              |
+# | Independent Test Module                                                         |
 # ===================================================================================
 if __name__ == '__main__':
-    # ----- 测试 1: Layer-wise 策略 -----
-    print("===== 独立测试: 'layer_wise' 策略 =====")
+    # ----- Test 1: Layer-wise Strategy -----
+    print("===== Independent Test: 'layer_wise' Strategy =====")
     manager_layer = ControllerManager(search_strategy='layer_wise', num_layers=2)
     
-    print("\n[步骤 1] 采样 1 个 'layer_wise' 架构...")
+    print("\n[Step 1] Sampling 1 'layer_wise' architecture...")
     architectures_layer = manager_layer.sample_architectures(num_samples=1)
-    print("  ✅ 采样成功:")
+    print("  - Sampling successful:")
     for arch in architectures_layer:
         print(f"    - ID: {arch['arch_id']}")
         print(f"    - Spec: {arch['arch_spec']}")
     
-    print("\n[步骤 2] 模拟奖励和训练...")
+    print("\n[Step 2] Simulating reward and training...")
     mock_rewards_layer = {architectures_layer[0]['arch_id']: 0.9}
     manager_layer.train_step(mock_rewards_layer)
-    print("  ✅ 训练步骤完成。")
-    print(f"  ✅ 记录的最佳准确率: {manager_layer.best_arch_accuracy}")
+    print("  - Train step completed.")
+    print(f"  - Best recorded accuracy: {manager_layer.best_arch_accuracy}")
 
-    print("\n===== 'layer_wise' 测试完成。 =====\n")
+    print("\n===== 'layer_wise' test complete. =====\n")
 
-    # ----- 测试 2: Cell-based 策略 -----
-    print("===== 独立测试: 'cell_based' 策略 =====")
+    # ----- Test 2: Cell-based Strategy -----
+    print("===== Independent Test: 'cell_based' Strategy =====")
     manager_cell = ControllerManager(search_strategy='cell_based', num_layers=3, num_intermediate_nodes=4)
     
-    print("\n[步骤 1] 采样 1 个 'cell_based' 架构...")
+    print("\n[Step 1] Sampling 1 'cell_based' architecture...")
     architectures_cell = manager_cell.sample_architectures(num_samples=1)
-    print("  ✅ 采样成功:")
+    print("  - Sampling successful:")
     for arch in architectures_cell:
         print(f"    - ID: {arch['arch_id']}")
         print(f"    - Spec: {arch['arch_spec']}")
     
-    print("\n[步骤 2] 模拟奖励和训练...")
+    print("\n[Step 2] Simulating reward and training...")
     mock_rewards_cell = {architectures_cell[0]['arch_id']: 0.92}
     manager_cell.train_step(mock_rewards_cell)
-    print("  ✅ 训练步骤完成。")
-    print(f"  ✅ 记录的最佳准确率: {manager_cell.best_arch_accuracy}")
+    print("  - Train step completed.")
+    print(f"  - Best recorded accuracy: {manager_cell.best_arch_accuracy}")
     
-    print("\n===== 'cell_based' 测试完成。 =====")
+    print("\n===== 'cell_based' test complete. =====")
