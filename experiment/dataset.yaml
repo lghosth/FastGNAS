@@ -1,0 +1,229 @@
+PubMed:
+  name: PubMed
+  num_classes: 3
+  num_nodes: 19717
+  num_edges: 44338
+  avg_degree: 4.5
+  num_features: 500
+  train_batch_size: 1024
+  eval_batch_size: 1024
+  fan_out:
+  - -1
+  - -1
+  num_rounds: 1
+  steps_per_epoch: 10
+  epochs_per_round: 5
+  gnn_layers: 2
+Flickr:
+  name: Flickr
+  num_classes: 7
+  num_nodes: 89250
+  num_edges: 899756
+  avg_degree: 10.1
+  num_features: 500
+  train_batch_size: 512
+  eval_batch_size: 512
+  fan_out:
+  - 25
+  - 10
+  num_rounds: 1
+  steps_per_epoch: 10
+  epochs_per_round: 5
+  gnn_layers: 2
+ogbn-arxiv:
+  name: ogbn-arxiv
+  num_classes: 40
+  num_nodes: 169343
+  num_edges: 1166243
+  avg_degree: 6.9
+  num_features: 128
+  train_batch_size: 512
+  eval_batch_size: 512
+  fan_out:
+  - 15
+  - 10
+  num_rounds: 1
+  steps_per_epoch: 10
+  epochs_per_round: 5
+  gnn_layers: 2
+ogbn-products:
+  name: ogbn-products
+  num_classes: 47
+  num_nodes: 2449029
+  num_edges: 61859140
+  avg_degree: 25.3
+  num_features: 100
+  train_batch_size: 256
+  eval_batch_size: 256
+  fan_out:
+  - 15
+  - 10
+  num_rounds: 1
+  steps_per_epoch: 10
+  epochs_per_round: 5
+  gnn_layers: 2
+dataset_groups:
+  small:
+  - Cora
+  - PubMed
+  - CiteSeer
+  medium:
+  - Reddit
+  - Flickr
+  - Amazon-Computers
+  large:
+  - ogbn-arxiv
+  - ogbn-products
+  ogb:
+  - ogbn-arxiv
+  - ogbn-products
+  - ogbn-papers100M
+  experiment:
+  - Cora
+  - Reddit
+  - ogbn-arxiv
+  - ogbn-products
+defaults:
+  train_batch_size: 64
+  eval_batch_size: 128
+  fan_out:
+  - -1
+  - -1
+  steps_per_epoch: 10
+  device_memory_requirement: 4
+  num_search_rounds: 30
+  samples_per_round: 2
+  gnn_layers: 2
+  ogb_evaluator: false
+  metric: accuracy
+  requires_high_end_gpu: false
+device_configs:
+  p100:
+    memory_gb: 16
+    max_workers: 4
+    recommended_batch_multiplier: 0.8
+  a6000:
+    memory_gb: 48
+    max_workers: 8
+    recommended_batch_multiplier: 1.0
+  a100:
+    memory_gb: 80
+    max_workers: 8
+    recommended_batch_multiplier: 1.5
+experiment_templates:
+  fastgnas:
+    rotation_mode: subtask
+    balancing_enable: true
+    tolerance: 0.1
+    enable_global_evaluation: true
+  ca_baseline:
+    use_optimized_communication: true
+    balancing_enable: false
+  co_baseline:
+    communication_strategy: sync
+    balancing_enable: false
+  parallel_baseline:
+    balancing_enable: false
+    simple_round_robin: true
+Amazon-Photo:
+  name: Amazon-Photo
+  num_classes: 8
+  num_nodes: 7650
+  num_edges: 238162
+  avg_degree: 31.1
+  num_features: 745
+  train_batch_size: 64
+  eval_batch_size: 128
+  fan_out:
+  - 25
+  - 10
+  steps_per_epoch: 10
+  device_memory_requirement: 2
+  num_search_rounds: 30
+  samples_per_round: 2
+  gnn_layers: 2
+Amazon-Computers:
+  name: Amazon-Computers
+  num_classes: 10
+  num_nodes: 13752
+  num_edges: 491722
+  avg_degree: 35.8
+  num_features: 767
+  train_batch_size: 1024
+  eval_batch_size: 1024
+  fan_out:
+  - -1
+  - -1
+  num_rounds: 2
+  steps_per_epoch: 5
+  epochs_per_round: 5
+  gnn_layers: 2
+Reddit:
+  name: Reddit
+  num_classes: 41
+  num_nodes: 232965
+  num_edges: 114615892
+  avg_degree: 492.3
+  num_features: 602
+  train_batch_size: 512
+  eval_batch_size: 512
+  fan_out:
+  - 25
+  - 10
+  num_rounds: 2
+  steps_per_epoch: 5
+  epochs_per_round: 5
+  gnn_layers: 2
+CiteSeer:
+  name: CiteSeer
+  num_classes: 6
+  num_nodes: 3327
+  num_edges: 9104
+  avg_degree: 2.7
+  num_features: 3703
+  train_batch_size: 32
+  eval_batch_size: 64
+  fan_out:
+  - -1
+  - -1
+  steps_per_epoch: 10
+  device_memory_requirement: 2
+  num_search_rounds: 30
+  samples_per_round: 2
+  gnn_layers: 2
+ogbn-papers100M:
+  name: ogbn-papers100M
+  num_classes: 172
+  num_nodes: 111059956
+  num_edges: 1615685872
+  avg_degree: 14.5
+  num_features: 128
+  train_batch_size: 128
+  eval_batch_size: 128
+  fan_out:
+  - 10
+  - 5
+  steps_per_epoch: 50
+  device_memory_requirement: 24
+  num_search_rounds: 40
+  samples_per_round: 2
+  gnn_layers: 2
+  ogb_evaluator: true
+  metric: acc
+  requires_high_end_gpu: true
+Cora:
+  name: Cora
+  num_classes: 7
+  num_nodes: 2708
+  num_edges: 5429
+  avg_degree: 3.9
+  num_features: 1433
+  train_batch_size: 15
+  eval_batch_size: 15
+  fan_out:
+  - -1
+  - -1
+  num_rounds: 2
+  steps_per_epoch: 5
+  epochs_per_round: 5
+  gnn_layers: 2

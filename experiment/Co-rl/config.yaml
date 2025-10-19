@@ -1,0 +1,34 @@
+co_backends:
+  num_workers: 8
+  device_GPU: 8
+  workers:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  dataset: ''
+  device: cuda
+  partition_strategy: balanced_communication_only
+  learning_rate: 0.01
+  weight_decay: 0.0005
+  dropout: 0.6
+  sampler:
+    total_samples: 5
+    reward_times: 1
+    controller:
+      search_strategy: layer_wise
+      num_layers: 2
+      learning_rate: 0.00035
+      entropy_weight: 0.0001
+  logging:
+    level: INFO
+    save_logs: true
+    log_dir: experiment/Co-rl/log
+  experiment:
+    name: Co-rl_baseline_experiment
+    use_random_seed: false
+    random_seed: 46

@@ -1,0 +1,49 @@
+parallel_backends:
+  dataset: ''
+  dataset_root: dataset
+  num_workers: 8
+  device_GPU: 8
+  workers:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  learning_rate: 0.01
+  weight_decay: 0.0005
+  dropout: 0.6
+  num_classes: 7
+  backend: parallel_v2
+  ray:
+    init_kwargs:
+      include_dashboard: false
+training:
+  epochs_per_round: 5
+  num_rounds: 2
+  batch_size: 1024
+  steps_per_epoch: 5
+  fan_out:
+  - -1
+  - -1
+architecture:
+  sampler:
+    total_samples: 5
+    reward_times: 1
+    controller:
+      search_strategy: layer_wise
+      num_layers: 2
+      learning_rate: 0.00035
+      entropy_weight: 0.0001
+    use_balancer: false
+logging:
+  level: INFO
+  save_logs: true
+  log_dir: experiment/Ad_OD-rl/log
+experiment:
+  name: ad_od_experiment
+  use_random_seed: false
+  random_seed: 42
+  description: Architecture-Parallel (parallel_v2) baseline experiment

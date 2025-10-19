@@ -1,0 +1,85 @@
+ca_backends:
+  num_workers: 8
+  device_GPU: 8
+  workers:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  dataset: Flickr
+  device: cuda
+  partition_strategy: balanced_stratified_khop
+  learning_rate: 0.01
+  weight_decay: 0.0005
+  dropout: 0.6
+  num_classes: 7
+training:
+  epochs_per_round: 2
+  num_rounds: 5
+  batch_size: 1024
+  steps_per_epoch: 5
+  fan_out:
+  - 15
+  - 10
+  use_optimized_communication: true
+architecture:
+  test_arch:
+    layers:
+    - type: gcn
+      hidden_dim: 64
+      act: relu
+    - type: gcn
+      hidden_dim: 32
+      act: relu
+  test_architectures:
+  - name: simple_gcn
+    layers:
+    - type: gcn
+      hidden_dim: 64
+      act: relu
+    - type: gcn
+      hidden_dim: 32
+      act: relu
+  - name: gat_gcn
+    layers:
+    - type: gat
+      hidden_dim: 64
+      heads: 4
+      act: elu
+    - type: gcn
+      hidden_dim: 32
+      act: relu
+  - name: sage_gat
+    layers:
+    - type: sage
+      hidden_dim: 64
+      act: relu
+    - type: gat
+      hidden_dim: 32
+      heads: 2
+      act: elu
+  sampler:
+    total_samples: 30
+    reward_times: 10
+    controller:
+      search_strategy: layer_wise
+      num_layers: 2
+      learning_rate: 0.00035
+      entropy_weight: 0.0001
+    use_balancer: false
+    balance:
+      batch_size: 6
+      min_architectures: 3
+      tolerance: 0.15
+      num_workers: 2
+logging:
+  level: INFO
+  save_logs: true
+  log_dir: baseline/gnas_ca_rl/logs
+experiment:
+  name: ca_baseline_experiment
+  random_seed: 42

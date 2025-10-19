@@ -1,0 +1,73 @@
+co_backends:
+  num_workers: 8
+  device_GPU: 8
+  workers:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  dataset: Cora
+  device: cuda
+  partition_strategy: balanced_communication_only
+  learning_rate: 0.01
+  weight_decay: 0.0005
+  dropout: 0.6
+  num_classes: 7
+  communication_strategy: sync
+  feature_cache_size: 1000
+training:
+  epochs_per_round: 2
+  num_rounds: 5
+  batch_size: 15
+  steps_per_epoch: 5
+  fan_out:
+  - -1
+  - -1
+architecture:
+  test_arch:
+    layers:
+    - type: gcn
+      hidden_dim: 64
+      act: relu
+    - type: gcn
+      hidden_dim: 32
+      act: relu
+  test_architectures:
+  - name: co_simple_gcn
+    layers:
+    - type: gcn
+      hidden_dim: 64
+      act: relu
+    - type: gcn
+      hidden_dim: 32
+      act: relu
+  - name: co_gat_gcn
+    layers:
+    - type: gat
+      hidden_dim: 64
+      heads: 4
+      act: elu
+    - type: gcn
+      hidden_dim: 32
+      act: relu
+  sampler:
+    total_samples: 610
+    reward_times: 30
+    controller:
+      search_strategy: layer_wise
+      num_layers: 2
+      learning_rate: 0.00035
+      entropy_weight: 0.0001
+    use_balancer: false
+logging:
+  level: INFO
+  save_logs: true
+  log_dir: baseline/gnas_co_rl/logs
+experiment:
+  name: co_baseline_experiment
+  random_seed: 46
+  description: Communication-Only数据并行训练基线，使用纯数据分割策略

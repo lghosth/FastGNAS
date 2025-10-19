@@ -1,0 +1,66 @@
+ca_backends:
+  num_workers: 8
+  device_GPU: 8
+  workers:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  dataset: ''
+  device: cuda
+  partition_strategy: balanced_stratified_khop
+  learning_rate: 0.01
+  weight_decay: 0.0005
+  dropout: 0.6
+  sampler:
+    initial_samples: 10
+    shapley:
+      random_seed: 42
+      min_training_samples: 5
+      pruning_threshold: 0.5
+      pruning_iterations: 1
+      pruning_retrain_each_round: true
+      pruning_stop_when_no_change: true
+      use_dgnap_pruning: true
+      top_k: 10
+      max_candidates: 10000
+      shap_background_size: 50
+      shap_background_method: kmeans
+      shap_sample_size: 200
+      component_normalization: true
+      predictor_type: tree
+      use_tree_explainer: true
+      tree_predictor_params:
+        n_estimators: 1000
+        max_depth: 4
+        random_state: 42
+      predictor_params:
+        hidden_layer_sizes:
+        - 128
+        - 64
+        max_iter: 200
+        random_state: 42
+      gnn_hidden_dim: 64
+      gnn_layers: 2
+      gnn_dropout: 0.1
+      gnn_learning_rate: 0.001
+      gnn_weight_decay: 0.0
+      gnn_epochs: 200
+      gnn_batch_size: 16
+      gnn_device: auto
+      gnn_attention_heads: 4
+      gnn_ff_hidden_dim: 128
+      gnn_architecture: graphnap
+    refined_samples: 2
+  logging:
+    level: INFO
+    save_logs: true
+    log_dir: experiment/Ca-shapley/log
+  experiment:
+    name: Ca-shapley_baseline_experiment
+    use_random_seed: false
+    random_seed: 42

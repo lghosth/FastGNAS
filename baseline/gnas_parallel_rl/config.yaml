@@ -1,0 +1,83 @@
+parallel_backends:
+  dataset: Flickr
+  dataset_root: dataset
+  num_workers: 8
+  device_GPU: 8
+  workers:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  learning_rate: 0.01
+  weight_decay: 0.0005
+  dropout: 0.6
+  num_classes: 7
+  backend: parallel_v2
+  ray:
+    init_kwargs:
+      include_dashboard: false
+training:
+  epochs_per_round: 5
+  num_rounds: 2
+  batch_size: 1024
+  steps_per_epoch: 5
+  fan_out:
+  - -1
+  - -1
+architecture:
+  test_arch:
+    layers:
+    - type: gcn
+      hidden_dim: 64
+      act: relu
+    - type: gcn
+      hidden_dim: 32
+      act: relu
+  test_architectures:
+  - name: parallel_simple_gcn
+    layers:
+    - type: gcn
+      hidden_dim: 64
+      act: relu
+    - type: gcn
+      hidden_dim: 32
+      act: relu
+  - name: parallel_gat_gcn
+    layers:
+    - type: gat
+      hidden_dim: 64
+      heads: 4
+      act: elu
+    - type: gcn
+      hidden_dim: 32
+      act: relu
+  - name: parallel_sage_gat
+    layers:
+    - type: sage
+      hidden_dim: 64
+      act: relu
+    - type: gat
+      hidden_dim: 32
+      heads: 2
+      act: elu
+  sampler:
+    total_samples: 17
+    reward_times: 1
+    controller:
+      search_strategy: layer_wise
+      num_layers: 2
+      learning_rate: 0.00035
+      entropy_weight: 0.0001
+    use_balancer: false
+logging:
+  level: INFO
+  save_logs: true
+  log_dir: baseline/gnas_parallel_rl/logs
+experiment:
+  name: parallel_baseline_experiment
+  random_seed: 42
+  description: Architecture-Parallel baseline for comparison with CA/CO

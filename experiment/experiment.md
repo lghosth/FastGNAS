@@ -1,0 +1,47 @@
+实验代码设计：
+- 项目根目录文件夹experiment
+	- Ad_OD-rl  Ad_OD-shapley  Ad-rl  Ca-rl  Ca-shapley  Co-rl  Co-shapley  FastGNAS-rl  FastGNAS-shapley
+		- 每个目录下都是run文件，config.yaml文件，logs目录【这个可以参考baseline里面的用法】
+	- dataset.yaml：这个用来统一四个数据集的训练参数（例如fan_out，batch_size，num_classes，workers，num_workers），到时候实验都是读取这个文件来获取训练配置
+
+当前实验背景：
+- 数据集：Cora | PubMed | Reddit | ogbn-products
+- 搜索策略：强化学习 | shapley
+- 训练框架：Co | Ca | parallel | parallel-v2 | FastGNAS（本项目）
+- **搜索结果图**：类似于在架构搜索评估历史中，出现的最后架构精度的时间，架构编号，精度；
+	- 这里需要在四个数据集，两个搜索策略，4个训练框架（Co | Ca | parallel-v2 | FastGNAS）
+	- 由于Reddit和ogbn-products数据集太大，完整跑完需要时间太多，所以采用前10轮（具体可以调整）的数据，后面数据仿真
+	- 这个图目标就是快速展示在相同设置下，本项目训练速度更快
+- **搜索时间表格**：总搜索评估时间，单个架构评估时间（取平均即可），搜索到最优架构用的搜索架构数
+	- 这里需要在四个数据集，两个搜索策略，4个训练框架（Co | Ca | parallel-v2 | FastGNAS）
+	- 这里同样直接Reddit和ogbn-products数据集太大，采用前10轮数据，后面仿真
+	- 在shapley搜索策略是分为两阶段（一阶段评估训练评估器，二阶段根据评估器剪枝后评估时间），因此主要采用一阶段的训练时间和二阶段训练时间作为评估时间和单个评估时间【】
+- **加速比对比**：以Co项目的速度为1倍，算出加速比，柱状图
+	- 这里需要在四个数据集，两个搜索策略，4个训练框架（Co | Ca | parallel-v2 | FastGNAS）
+	- 这里的速度还是主要比较平均单个架构训练时间的加速比
+- **内存对比以及总搜索时间对比**：
+	- 默认采用PubMed和OGB数据集，使用强化学习，在A6000机器上，8卡实验
+	- 展示Co | Ca | parallel-v2 | FastGNAS | parallel五个训练框架的显存占用和搜索时间对比（这里可以使用平均单个框架搜索时间 * 设定的架构数量）----> 这个展示了这四个（Co | Ca | parallel-v2 | FastGNAS）显存占用差不多，但是FastGNAS训练更快，同时parallel虽然速度接近FastGNAS，但是显存占用更多，大图有时候无法使用
+- **时间分解**：
+	- 默认采用PubMed和OGB数据集，使用强化学习，在A6000机器上，8卡实验
+	- 采用五个训练架构Co | Ca | parallel-v2 | FastGNAS | parallel
+	- 主要是对比这几个项目（
+		- 远程邻居通信时间 | 
+		- 模型同步时间 | 
+		- 模型迁移时间（累计总时间）| 
+		- 数据交换时间（parallel-v2专属，mini-batch传输进gpu时间，这里其他的训练架构可以变成数据集加载进GPU时间） 
+		- 计算时间（batch训练时间总和）
+		- 搜索策略执行时间（搜索策略执行时间，这里FastGANS存在负载均衡模块，因此会稍多）
+		- GNN模型更新时间（optimizer.step()模型参数更新时间）
+- **消融实验**：
+	- 默认采用PubMed和OGB数据集，使用强化学习，在A6000机器上，8卡实验
+	- 基础是数据并行带通信的架构（base） vs 混合并行的架构
+	- 基础是数据并行带通信的架构 vs（混合并行的架构 with 概率批存储与复用）
+	- 基础是数据并行带通信的架构 vs（混合并行的架构 with 概率批存储与复用 + 探索性任务生成）
+	- 不切分直接轮转（bucket） 与 细粒度切分（subtask）（效率和准确率对比）
+- **可扩展性对比**：
+	- 默认采用PubMed和OGB数据集，使用强化学习，Co | Ca | parallel-v2 | FastGNAS | parallel，在A6000机器上
+	- GPU数量从1，2，4，8变化时：
+		- 单轮时间或者总搜索时间（我们实现接近线性的可扩展性）
+		- GPU内存占用
+	- 最后有时间附带上P100机器的两个GPU训练的搜索时间和GPU内存占用
